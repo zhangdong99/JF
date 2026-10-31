@@ -1,0 +1,116 @@
+.arch-wrap {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.arch-layers {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.arch-side-card {
+  width: 180px;
+  flex-shrink: 0;
+}
+
+.arch-columns {
+  display: grid;
+  gap: 12px;
+}
+
+.arch-column {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.arch-column-title {
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.arch-nodes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.arch-node {
+  background: #fff;
+  border: 1px solid #d9e4ff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  text-align: center;
+  font-size: 13px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.arch-node.main-node {
+  background: #eef3ff;
+  font-weight: 600;
+}
+
+.arch-node.side-node {
+  background: #fff7e6;
+  border-color: #ffd591;
+}
+
+.arch-node-children {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.arch-child-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.arch-arrow {
+  color: #999;
+  font-size: 12px;
+}
+
+.arch-flow-v {
+  text-align: center;
+  color: #bbb;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.arch-side-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.arch-side-flow > div:first-child {
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .arch-wrap {
+    flex-direction: column;
+  }
+  .arch-side-card {
+    width: 100%;
+  }
+  .arch-side-flow {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .arch-flow-v {
+    transform: rotate(-90deg);
+  }
+}

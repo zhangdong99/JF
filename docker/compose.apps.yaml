@@ -1,0 +1,27 @@
+# 治理平台应用服务（与 compose.yaml 合并使用）
+# 启动：docker compose -f compose.yaml -f compose.apps.yaml up -d --build
+services:
+  backend:
+    build: ../backend
+    container_name: ai-office-backend
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres          # 容器网络内直接用服务名
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ai_office
+      N8N_WEBHOOK_URL: http://ai-office-n8n:5678/webhook/plan-review
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ../frontend
+    container_name: ai-office-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - backend

@@ -1,0 +1,32 @@
+# ===== 密钥/环境配置（绝不提交）=====
+.env
+docker/.env
+backend/.env
+frontend/.env
+*.local
+
+# ===== 运行数据与产物 =====
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+.pnpm-store/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# ===== 日志与临时文件 =====
+*.log
+logs/
+.tmp_*
+*.tmpdir/
+
+# ===== IDE / 系统 =====
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+
+# ===== 数据库开发临时库 =====
+*.sqlite
+*.db

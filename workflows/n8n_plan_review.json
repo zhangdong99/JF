@@ -1,0 +1,129 @@
+{
+  "name": "AI-Office 方案AI审查与建议",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "plan-review",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "b1000001-0000-4000-8000-000000000000",
+      "name": "Webhook触发",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-560, 0],
+      "webhookId": "plan-review"
+    },
+    {
+      "parameters": {
+        "url": "=http://backend:8000/api/v1/plans/{{ $json.body.plan_id }}/context",
+        "options": {}
+      },
+      "id": "b1000001-0000-4000-8000-000000000001",
+      "name": "拉取方案上下文",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-340, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// 组装 Ollama 提示词\nconst ctx = $json.data ?? $json;\nconst plan = ctx.plan ?? {};\nconst rel = ctx.related_data ?? {};\nconst trigger = $input.item.json ?? {};\n// webhook 的 trigger 信息需要从第一个节点拿\nconst webhookItems = $('Webhook触发').all();\nconst wh = webhookItems[0]?.json?.body ?? {};\n\nconst triggerTypeMap = {\n  data_change: '关联业务数据发生变化',\n  leader_feedback: '领导/负责人提出了新的意见',\n  manual: '人工发起审查',\n};\n\nconst relatedSummary = [\n  `需求总数：${rel.requirements_total ?? 0}`,\n  `最近需求：${(rel.requirements_recent ?? []).map(r => `${r.code} ${r.name}（${r.decision ?? '待评审'}）`).join('；') || '无'}`,\n  `处置项总数：${rel.disposals_total ?? 0}`,\n  `系统总数：${rel.systems_total ?? 0}`,\n  `评分分布：${JSON.stringify(rel.grade_distribution ?? [])}`,\n].join('\\n');\n\nconst userPrompt = `请基于以下信息，对治理方案进行修订分析并输出修改稿。\n\n【触发原因】${triggerTypeMap[wh.trigger_type] ?? wh.trigger_type ?? '未知'}\n【触发详情】${wh.detail ?? '无'}\n\n【方案标题】${plan.title ?? ''}\n【方案类别】${plan.category ?? ''}\n\n【当前关联业务数据摘要】\n${relatedSummary}\n\n【方案全文（Markdown）】\n${plan.content_md ?? ''}\n\n要求：\n1. 结合触发原因与业务数据，判断方案哪些部分需要调整；\n2. suggestion_md 输出【完整修改后的方案 Markdown】，并在开头用「## 修改说明」小节列出你改了什么、为什么；\n3. 保持原方案的整体结构与编号体系，只做必要的增量修改，不要重写无关内容；\n4. 不确定的地方在「## 待人工确认」小节列出让负责人确认的问题清单；\n5. 只输出 JSON 对象，不要输出其他内容。`;\n\nreturn [{ json: { messages: [\n  { role: 'system', content: '你是企业产品组合治理与运营方案专家。你的输出必须是严格的 JSON 对象，包含两个字段：analysis（中文简要分析，200字内）和 suggestion_md（完整修改后的方案 Markdown 文本）。' },\n  { role: 'user', content: userPrompt },\n] } }];"
+      },
+      "id": "b1000001-0000-4000-8000-000000000002",
+      "name": "组装提示词",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-120, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'qwen3:8b', messages: $json.messages, stream: false, format: 'json', options: { temperature: 0.3 } }) }}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "id": "b1000001-0000-4000-8000-000000000003",
+      "name": "调用Ollama分析",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [100, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// 解析模型输出并回传给平台\nconst resp = $json;\nlet parsed = {};\ntry { parsed = JSON.parse(resp.message?.content ?? '{}'); } catch (e) { parsed = { analysis: '模型输出解析失败', suggestion_md: resp.message?.content ?? '' }; }\nif (!parsed.suggestion_md) {\n  parsed.suggestion_md = parsed.suggestion_md || parsed.analysis || '(模型未返回有效建议)';\n}\nconst webhookItems = $('Webhook触发').all();\nconst wh = webhookItems[0]?.json?.body ?? {};\nconst planId = wh.plan_id;\nreturn [{ json: {\n  planId,\n  payload: {\n    trigger_type: wh.trigger_type ?? 'manual',\n    trigger_detail: (wh.detail ?? '').slice(0, 2000),\n    suggestion_md: parsed.suggestion_md,\n    n8n_execution_id: $execution.id,\n  },\n  owner_email: $('拉取方案上下文').first().json?.data?.plan?.owner_email ?? $('拉取方案上下文').first().json?.plan?.owner_email ?? '',\n  plan_title: $('拉取方案上下文').first().json?.data?.plan?.title ?? '',\n  analysis: parsed.analysis ?? '',\n} }];"
+      },
+      "id": "b1000001-0000-4000-8000-000000000004",
+      "name": "解析模型输出",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://backend:8000/api/v1/plans/{{ $json.planId }}/suggestions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Actor", "value": "n8n-ai-review" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {}
+      },
+      "id": "b1000001-0000-4000-8000-000000000005",
+      "name": "回写AI建议",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [540, 0]
+    },
+    {
+      "parameters": {
+        "fromEmail": "ai-office@example.com",
+        "toEmail": "={{ $json.owner_email }}",
+        "subject": "=【AI-Office】方案《{{ $json.plan_title }}》有新的AI修改建议待确认",
+        "emailFormat": "text",
+        "text": "=您好：\n\n方案《{{ $json.plan_title }}》因业务变化/领导意见触发了 AI 审查，已生成修改建议。\n\nAI 分析摘要：\n{{ $json.analysis }}\n\n请登录产品组合治理平台 http://localhost:8080/plans 查看「AI 修改建议」，确认采纳或驳回。\n\n—— AI-Office 自动提醒（n8n）",
+        "options": {}
+      },
+      "id": "b1000001-0000-4000-8000-000000000006",
+      "name": "邮件通知负责人",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [760, 0],
+      "onError": "continueRegularOutput",
+      "webhookId": "plan-review-mail"
+    }
+  ],
+  "connections": {
+    "Webhook触发": {
+      "main": [[{"node": "拉取方案上下文", "type": "main", "index": 0}]]
+    },
+    "拉取方案上下文": {
+      "main": [[{"node": "组装提示词", "type": "main", "index": 0}]]
+    },
+    "组装提示词": {
+      "main": [[{"node": "调用Ollama分析", "type": "main", "index": 0}]]
+    },
+    "调用Ollama分析": {
+      "main": [[{"node": "解析模型输出", "type": "main", "index": 0}]]
+    },
+    "解析模型输出": {
+      "main": [[{"node": "回写AI建议", "type": "main", "index": 0}]]
+    },
+    "回写AI建议": {
+      "main": [[{"node": "邮件通知负责人", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {},
+  "pinData": {}
+}

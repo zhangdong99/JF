@@ -1,0 +1,67 @@
+/* 方案管理：Markdown 渲染与编辑样式 */
+
+.plan-markdown {
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.plan-markdown h1,
+.plan-markdown h2,
+.plan-markdown h3 {
+  margin: 12px 0 8px;
+}
+
+.plan-markdown p {
+  margin: 8px 0;
+}
+
+.plan-markdown table {
+  border-collapse: collapse;
+  margin: 8px 0;
+  width: 100%;
+}
+
+.plan-markdown th,
+.plan-markdown td {
+  border: 1px solid #d9d9d9;
+  padding: 6px 10px;
+}
+
+.plan-markdown th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.plan-markdown pre {
+  background: #f5f5f5;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 12px;
+  overflow: auto;
+}
+
+.plan-markdown code {
+  background: #f5f5f5;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: Consolas, Menlo, monospace;
+  font-size: 13px;
+}
+
+.plan-markdown pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.plan-markdown blockquote {
+  margin: 8px 0;
+  padding: 4px 12px;
+  border-left: 4px solid #d9d9d9;
+  color: #555;
+}
+
+.plan-md-editor textarea {
+  font-family: Consolas, Menlo, 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}

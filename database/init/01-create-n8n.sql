@@ -1,0 +1,5 @@
+CREATE USER n8n_user
+WITH PASSWORD '...951951...';
+
+CREATE DATABASE n8n
+OWNER n8n_user;
